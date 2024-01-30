@@ -1,0 +1,4 @@
+.root {
+	@apply w-full h-full relative bg-transparent flex flex-col justify-center items-center;
+	min-height: calc(100vh - 80px);
+}

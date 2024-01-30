@@ -1,0 +1,8 @@
+.root {
+	@apply relative w-full flex flex-row justify-between items-center px-4 md:px-12 xl:px-24 h-[80px] bg-[#0000009e];
+	backdrop-filter: blur(20px);
+
+	.nav {
+		@apply relative flex cursor-pointer text-white items-center justify-between w-full h-full;
+	}
+}

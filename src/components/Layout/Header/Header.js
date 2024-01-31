@@ -66,7 +66,7 @@ const Header = () => {
   console.log(balance, "balance");
 
   useEffect(() => {
-    console.log(balance, "hearder part");
+    console.log(data, "hearder part");
   }, [balance]);
 
   return (
@@ -114,7 +114,8 @@ const Header = () => {
           <div className="flex gap-2 items-center moo">
             <SvgBNB className="w-[24px] h-[24px] md:w-[32px] md:h-[32px]" />
             <div className="text-[12px] md:text-[16px] font-normal ">
-              {Number(data?.formatted).toFixed(4)} {data?.symbol}
+              {data === undefined ? 0 : Number(data?.formatted).toFixed(4)}{" "}
+              {data === undefined ? "BNB" : data?.symbol}
             </div>
           </div>
         </div>

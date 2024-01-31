@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { SvgBNB } from "assets/svg";
 import { useNavigate } from "react-router-dom";
 import packContractInterface from "../../abis/Pack.json";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits, parseUnits } from "viem";
 
 import babybonkContractInterface from "../../abis/babybonk.json";
 import {
@@ -17,6 +17,7 @@ import {
   useContractWrite,
   useAccount,
   useBalance,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 
 const addressToken = {
@@ -26,7 +27,7 @@ const addressToken = {
 
 const addressPack = {
   addressBase: "0x709fe4a56a553694Ce0A4dcB038c773094A15180",
-  addressBNB: "0x2421987FC971C947F3caF4472Ddb24a1194813b8",
+  addressBNB: "0x6E921Cd45ed0186191D58Ed797379e94B0e0cF29",
 };
 
 function Main() {
@@ -34,7 +35,7 @@ function Main() {
   const [packId, setPackId] = useState(1);
   const [bonkOrBnb, setBonkOrBnb] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
-  // const [allownceAmount, setAllownceAmount] = useState(0);
+  const [transactionHash, setTransactionHash] = useState("0x");
 
   const [selectedPack, setSelectedPack] = useState("packnew1");
   const navigate = useNavigate();
@@ -60,8 +61,6 @@ function Main() {
     }
   }
 
-  console.log(data, "result of token");
-
   const babyBonkContractConfig = {
     address:
       chain?.id === 56 ? addressToken.addressBNB : addressToken.addressBase,
@@ -80,8 +79,6 @@ function Main() {
     functionName: "balanceOf",
     args: [address],
   });
-
-  console.log(balance, "----------==========");
 
   const { data: pairTokenAndBNB1 } = useContractRead({
     ...packContractConfig,
@@ -117,7 +114,6 @@ function Main() {
     ],
   });
 
-  console.log(allowanceAmount, "allwownce Amount babybonk");
   const {
     config: erc20ApproveContractConfig,
     error: erc20ApproveConfigError,
@@ -127,11 +123,14 @@ function Main() {
     functionName: "approve",
     args: [
       chain?.id === 56 ? addressPack.addressBNB : addressPack.addressBase,
-      selectedPack.babybonkEther,
+      parseUnits(
+        selectedPack.babybonkEther === undefined
+          ? ""
+          : selectedPack.babybonkEther.toString(),
+        18
+      ),
     ],
   });
-
-  console.log(selectedPack.babybonkEther, "asdfasd============");
 
   const {
     data: erc20ApproveReturnData,
@@ -168,15 +167,9 @@ function Main() {
     loadingDiv.style.opacity = "0";
   }, []);
 
-  useEffect(() => {
-    console.log(packId, bonkOrBnb);
-  }, [packId, bonkOrBnb, allowanceAmount]);
-
   const handleDetailOpen = (value) => {
-    console.log(value, "pack information =============");
     setSelectedPack(value);
     setDetailOpen(true);
-    console.log(value, selectedPack, "pack information =============");
   };
 
   const handleDetailClose = () => {
@@ -184,16 +177,15 @@ function Main() {
   };
 
   const handleReviewOpenBonk = async (packId, method) => {
+    console.log("clicked function for buyPack");
     setBonkOrBnb(method);
     setPackId(packId);
-    console.log(bonkOrBnb, packId, "this is babybonk button");
     manuallyBuyPack();
   };
 
   const handleReviewOpenBNB = async (packId, method) => {
     setBonkOrBnb(method);
     setPackId(packId);
-    console.log(bonkOrBnb, packId, "this is bnb button");
     manuallyBuyPack();
   };
 
@@ -202,12 +194,16 @@ function Main() {
   };
 
   const handleApproveBabyBonk = async () => {
-    console.log(`approve function`);
+    console.log("clicked buttons for approve");
     await approve?.();
   };
 
   useEffect(() => {
-    if (buyPackSuccess === true) {
+    if (buyPackReturnData !== undefined) {
+      console.log(
+        buyPackReturnData,
+        "transaction hash when buyPack is successful"
+      );
       setDetailOpen(false);
       const homeDiv = document.getElementById("home");
       homeDiv.style.display = "none";
@@ -229,10 +225,13 @@ function Main() {
           loadingDiv.style.opacity = "0";
           loadingDiv.pause();
         }, 1000);
-        navigate("/review");
+        navigate(`/review/${buyPackReturnData}`);
       });
     }
-  }, [buyPackSuccess]);
+  }, [buyPackReturnData]);
+  useEffect(() => {
+    console.log(packId, bonkOrBnb, erc20ApproveReturnData, "========--------");
+  }, [packId, bonkOrBnb, allowanceAmount, approvedSuccess]);
 
   const nftDatas = [
     {
@@ -240,7 +239,10 @@ function Main() {
       image: "essential",
       title: "ESSENTIAL",
       color: "#1DDA7B",
-      babybonkEther: pairTokenAndBNB1 === undefined ? 0 : pairTokenAndBNB1[1],
+      babybonkEther: formatUnits(
+        pairTokenAndBNB1 === undefined ? 0 : pairTokenAndBNB1[1],
+        9
+      ),
       babybonk: formatNumber(
         formatUnits(pairTokenAndBNB1 === undefined ? 0 : pairTokenAndBNB1[1], 9)
       ),
@@ -339,6 +341,12 @@ function Main() {
     },
   ];
 
+  console.log(
+    formatUnits(allowanceAmount === undefined ? 0 : allowanceAmount, 9),
+    selectedPack.babybonkEther,
+    "-=-=--==================================================="
+  );
+
   return (
     <div className={s.root} id="home">
       <div class="overlay"></div>
@@ -433,7 +441,7 @@ function Main() {
                 formatUnits(
                   allowanceAmount === undefined ? 0 : allowanceAmount,
                   9
-                ) >= formatUnits(Number(selectedPack?.babybonkEther), 9)
+                ) >= selectedPack?.babybonkEther
               ) {
                 handleReviewOpenBonk(selectedPack.id, true);
               } else {
@@ -450,7 +458,7 @@ function Main() {
               {formatUnits(
                 allowanceAmount === undefined ? 0 : allowanceAmount,
                 9
-              ) >= formatUnits(Number(selectedPack?.babybonkEther), 9)
+              ) >= selectedPack?.babybonkEther
                 ? selectedPack?.babybonk
                 : "Approve"}{" "}
               BabyBonk

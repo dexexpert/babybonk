@@ -25,6 +25,7 @@ function Review() {
           },
         }
       );
+
       const imageDatas = await api_call.json();
       console.log(imageDatas?.result, "images");
       setImageNFT1(imageDatas?.result[0].image);

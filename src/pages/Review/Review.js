@@ -16,9 +16,14 @@ function Review() {
   const currentLocation = useLocation();
   const transactionHash = currentLocation.pathname?.slice(8, 75);
   useEffect(() => {
-    const getImages = async (amount) => {
+    const getImages = async () => {
       const api_call = await fetch(
-        `https://api.bonkroyale.com/api/buypack/${transactionHash}`
+        `https://api.bonkroyale.com/api/buypack/${transactionHash}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
       const imageDatas = await api_call.json();
       console.log(imageDatas?.result, "images");
